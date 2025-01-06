@@ -116,5 +116,5 @@ Below is a conceptual layout of the app:
 
 ## Contact
 
-For inquiries or support, please reach out at [your.email@example.com](mailto\:thenan0987@gmail.com).
+For inquiries or support, please reach out at [thenan0987@gmail.com](mailto\:thenan0987@gmail.com).
 
