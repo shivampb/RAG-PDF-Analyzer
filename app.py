@@ -7,8 +7,12 @@ from langchain_ollama import OllamaLLM
 from langchain.schema import Document
 import pypdf
 
+# this approch is a reasonse that shows default tenet error because of execution of whole code after 
+# every query and making db space full and not able to process the query
+
 # Asynchronous function
 async def main(file, query: str) -> str:
+    print("start")
     reader = pypdf.PdfReader(file)
 
     text = ""
@@ -91,3 +95,7 @@ else:
         st.warning("Please upload a PDF file.")
     if not query:
         st.warning("Please enter a query.")
+
+
+if "__main__" == __name__:
+    st.run(main())

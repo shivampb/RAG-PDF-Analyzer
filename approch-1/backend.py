@@ -8,15 +8,23 @@ import chromadb
 import tempfile
 import os
 
+#  this is approch one in which we create a new vector store and collection store inside the temp folder
+# and for every new user query and delete the temp folder and create a new one
+
 async def process_pdf_query(file, query: str) -> str:
     temp_dir = None
+    vector_store = None
+    chroma_client = None
+    collection_name = None
+    
     try:
         # Create a unique temporary directory
         temp_dir = tempfile.mkdtemp(prefix="pdf_query_")
+        print(f"Created temp directory: {temp_dir}")
         
         # Initialize Chroma client with the unique path
         chroma_client = chromadb.PersistentClient(path=temp_dir)
-        collection_name = f"pdf_collection_{os.urandom(4).hex()}"  # Create unique collection name
+        collection_name = f"pdf_collection_{os.urandom(4).hex()}"
         
         # Extract text from PDF
         reader = pypdf.PdfReader(file)
@@ -85,19 +93,35 @@ async def process_pdf_query(file, query: str) -> str:
         print(f"Error in processing: {str(e)}")
         return f"An error occurred: {str(e)}"
     
-    finally:
-        # Clean up: Delete collection and remove temporary directory
-        if temp_dir and os.path.exists(temp_dir):
-            try:
-                # Force close any open handles
-                if 'vector_store' in locals():
-                    del vector_store
-                if 'chroma_client' in locals():
-                    chroma_client.delete_collection(collection_name)
-                    del chroma_client
+    # finally:
+        # Ensure proper cleanup
+        print("Starting cleanup...")
+        try:
+            # First delete the vector store
+            if vector_store is not None:
+                del vector_store
                 
-                # Remove temporary directory and its contents
-                import shutil
-                shutil.rmtree(temp_dir, ignore_errors=True)
-            except Exception as e:
-                print(f"Cleanup error: {str(e)}")
+            # Then delete the collection
+            if chroma_client is not None and collection_name is not None:
+                try:
+                    chroma_client.delete_collection(collection_name)
+                except Exception as e:
+                    print(f"Error deleting collection: {str(e)}")
+                del chroma_client
+            
+            # Finally remove the temporary directory
+            if temp_dir and os.path.exists(temp_dir):
+                print("Files in temp directory before deletion:")
+                for root, dirs, files in os.walk(temp_dir):
+                    for file in files:
+                        print(f"- {os.path.join(root, file)}")
+                await asyncio.sleep(10)  # Give a small delay for resources to be released
+                try:
+                    import shutil
+                    shutil.rmtree(temp_dir, ignore_errors=False)  # Changed to False to see errors
+                    print(f"Successfully deleted temp directory: {temp_dir}")
+                except Exception as e:
+                    print(f"Error deleting temp directory: {str(e)}")
+                    
+        except Exception as e:
+            print(f"Cleanup error: {str(e)}")
